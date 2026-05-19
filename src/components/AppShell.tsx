@@ -11,7 +11,21 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/concerts/add", label: "Add Concert" },
   { href: "/concerts", label: "My Concerts" },
+  { href: "/tickets", label: "Find Tickets" },
+  { href: "/map", label: "Map" },
 ];
+
+function isNavActive(pathname: string, href: string) {
+  if (pathname === href) return true;
+  if (
+    href === "/concerts" &&
+    pathname.startsWith("/concerts/") &&
+    !pathname.startsWith("/concerts/add")
+  ) {
+    return true;
+  }
+  return false;
+}
 
 type AppShellProps = {
   userEmail: string;
@@ -80,7 +94,7 @@ export function AppShell({ userEmail, children }: AppShellProps) {
                     href={href}
                     role="tab"
                     className={`tab min-h-10 whitespace-nowrap transition-all ${
-                      pathname === href
+                      isNavActive(pathname, href)
                         ? "tab-active font-semibold"
                         : "hover:bg-base-200"
                     }`}

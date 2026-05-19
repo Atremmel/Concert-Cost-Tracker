@@ -8,7 +8,8 @@ import {
   getTopCostCategories,
   totalCost,
 } from "@/lib/concert-math";
-import { MapPin, Star } from "lucide-react";
+import Link from "next/link";
+import { ListMusic, MapPin, Star } from "lucide-react";
 
 export function ConcertCard({ concert }: { concert: Concert }) {
   const total = totalCost(concert);
@@ -18,6 +19,7 @@ export function ConcertCard({ concert }: { concert: Concert }) {
   const location = [concert.venue, concert.city, concert.state]
     .filter(Boolean)
     .join(" · ");
+  const hasSetlist = !!(concert.setlist_text || concert.setlist_file_path);
 
   return (
     <article className="surface-card-interactive">
@@ -86,6 +88,25 @@ export function ConcertCard({ concert }: { concert: Concert }) {
             {concert.notes}
           </p>
         )}
+
+        <div className="card-actions justify-end pt-1">
+          {hasSetlist ? (
+            <Link
+              href={`/concerts/${concert.id}`}
+              className="btn btn-outline btn-sm gap-1"
+            >
+              <ListMusic className="h-3.5 w-3.5" aria-hidden />
+              View setlist
+            </Link>
+          ) : (
+            <Link
+              href={`/concerts/${concert.id}`}
+              className="btn btn-ghost btn-sm"
+            >
+              Add setlist
+            </Link>
+          )}
+        </div>
       </div>
     </article>
   );

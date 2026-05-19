@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Music2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, getSupabaseConfigError } from "@/lib/supabase/client";
 import { friendlyAuthError } from "@/lib/auth-errors";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { FormField } from "@/components/FormField";
@@ -11,7 +11,7 @@ import { FeedbackAlert } from "@/components/ui/FeedbackAlert";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const configError = getSupabaseConfigError();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +24,14 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     setMessage(null);
+
+    if (configError) {
+      setError(configError);
+      setLoading(false);
+      return;
+    }
+
+    const supabase = createClient();
 
     if (mode === "signup") {
       const { error: signUpError } = await supabase.auth.signUp({
@@ -116,6 +124,9 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              {configError && (
+                <FeedbackAlert variant="error" message={configError} />
+              )}
               {message && (
                 <FeedbackAlert variant="info" message={message} />
               )}
@@ -159,7 +170,7 @@ export default function LoginPage() {
                 className={`btn btn-primary btn-md w-full min-h-11 ${
                   loading ? "loading" : ""
                 }`}
-                disabled={loading}
+                disabled={loading || !!configError}
               >
                 {loading
                   ? "Please wait…"

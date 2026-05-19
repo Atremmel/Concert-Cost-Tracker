@@ -19,6 +19,10 @@ export type Concert = {
   other_cost: number;
   fun_rating: number;
   notes: string | null;
+  setlist_text: string | null;
+  setlist_file_path: string | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
 };
 

@@ -9,6 +9,8 @@ import { COST_FIELDS } from "@/lib/types";
 import { FormField } from "./FormField";
 import { FeedbackAlert } from "@/components/ui/FeedbackAlert";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { SetlistFields } from "./SetlistFields";
+import { uploadSetlistFile } from "@/lib/setlist";
 
 const emptyForm = {
   concert_name: "",
@@ -63,6 +65,8 @@ export function AddConcertForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [setlistText, setSetlistText] = useState("");
+  const [setlistFile, setSetlistFile] = useState<File | null>(null);
 
   const costs = useMemo(
     () => ({
@@ -108,32 +112,66 @@ export function AddConcertForm() {
       return;
     }
 
-    const { error: insertError } = await supabase.from("concerts").insert({
-      user_id: user.id,
-      concert_name: form.concert_name.trim(),
-      artist: form.artist.trim() || null,
-      venue: form.venue.trim() || null,
-      city: form.city.trim() || null,
-      state: form.state.trim() || null,
-      concert_date: form.concert_date,
-      distance_from_home: form.distance_from_home
-        ? Number(form.distance_from_home)
-        : null,
-      hours_at_event: form.hours_at_event ? Number(form.hours_at_event) : null,
-      ...costs,
-      fun_rating: form.fun_rating,
-      notes: form.notes.trim() || null,
-    });
+    const { data: inserted, error: insertError } = await supabase
+      .from("concerts")
+      .insert({
+        user_id: user.id,
+        concert_name: form.concert_name.trim(),
+        artist: form.artist.trim() || null,
+        venue: form.venue.trim() || null,
+        city: form.city.trim() || null,
+        state: form.state.trim() || null,
+        concert_date: form.concert_date,
+        distance_from_home: form.distance_from_home
+          ? Number(form.distance_from_home)
+          : null,
+        hours_at_event: form.hours_at_event
+          ? Number(form.hours_at_event)
+          : null,
+        ...costs,
+        fun_rating: form.fun_rating,
+        notes: form.notes.trim() || null,
+        setlist_text: setlistText.trim() || null,
+      })
+      .select("id")
+      .single();
 
-    setLoading(false);
-
-    if (insertError) {
-      setError(insertError.message);
+    if (insertError || !inserted) {
+      setLoading(false);
+      setError(insertError?.message ?? "Could not save concert.");
       return;
     }
 
+    if (setlistFile) {
+      const upload = await uploadSetlistFile(
+        supabase,
+        user.id,
+        inserted.id,
+        setlistFile,
+      );
+      if (upload.error) {
+        setLoading(false);
+        setError(upload.error);
+        return;
+      }
+      if (upload.path) {
+        const { error: pathError } = await supabase
+          .from("concerts")
+          .update({ setlist_file_path: upload.path })
+          .eq("id", inserted.id);
+        if (pathError) {
+          setLoading(false);
+          setError(pathError.message);
+          return;
+        }
+      }
+    }
+
+    setLoading(false);
     setSuccess(true);
     setForm(emptyForm);
+    setSetlistText("");
+    setSetlistFile(null);
     toast.success("Concert saved!", {
       description: "Add another or check your dashboard.",
     });
@@ -288,7 +326,19 @@ export function AddConcertForm() {
 
       <section className="surface-card">
         <div className="card-body space-y-4">
-          <SectionHeader step={3} title="How fun was it?" />
+          <SectionHeader step={3} title="Setlist (optional)" />
+          <SetlistFields
+            setlistText={setlistText}
+            onSetlistTextChange={setSetlistText}
+            file={setlistFile}
+            onFileChange={setSetlistFile}
+          />
+        </div>
+      </section>
+
+      <section className="surface-card">
+        <div className="card-body space-y-4">
+          <SectionHeader step={4} title="How fun was it?" />
           <p className="text-sm text-base-content/70">
             Rate from 1 (Terrible Time) to 10 (Best Time Ever).
           </p>
